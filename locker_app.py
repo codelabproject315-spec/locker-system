@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import streamlit_authenticator as stauth # 認証ライブラリ
 import yaml # 設定ファイル読み込み用
+import os # ★★★ Renderのために追加 ★★★
 
 # --- 1. アプリ専用の記憶場所 (session_state) にデータを保存する ---
 if 'df' not in st.session_state:
@@ -29,11 +30,11 @@ if 'df' not in st.session_state:
 
 # --- 2. 認証機能の設定 ---
 
-# Streamlit SecretsからGoogleのキーを読み込む
-google_client_id = st.secrets["GOOGLE_CLIENT_ID"]
-google_client_secret = st.secrets["GOOGLE_CLIENT_SECRET"]
-cookie_name = st.secrets["COOKIE_NAME"]
-cookie_key = st.secrets["COOKIE_KEY"]
+# ★★★ 最終修正点：Renderの「環境変数」からキーを読み込む ★★★
+google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
+google_client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
+cookie_name = os.environ.get("COOKIE_NAME")
+cookie_key = os.environ.get("COOKIE_KEY")
 
 # ★★★ 最終修正点：RenderのURLに書き換える ★★★
 GOOGLE_REDIRECT_URI = "https://locker-system-jgsl.onrender.com/"
