@@ -1,20 +1,18 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import streamlit_authenticator as stauth # 認証ライブラリ
+import yaml # 設定ファイル読み込み用
 
 # --- 1. アプリ専用の記憶場所 (session_state) にデータを保存する ---
 if 'df' not in st.session_state:
     
-    # --- 10. データを200件に増やす ---
     total_lockers = 200
-    # '001', '002', ... '200' というリストを作成
     locker_numbers = [f"{i:03d}" for i in range(1, total_lockers + 1)]
     
-    # 200個分の空データ(np.nan)を生成
     student_ids = [np.nan] * total_lockers
     names = [np.nan] * total_lockers
     
-    # 以前のサンプルデータをいくつか残しておく
     student_ids[0] = 'S1001' # 001番
     names[0] = '田中 太郎'
     student_ids[1] = 'S1002' # 002番
@@ -28,17 +26,50 @@ if 'df' not in st.session_state:
         'Name': names
     }
     st.session_state.df = pd.DataFrame(initial_data)
-# ----------------------------------------------------------------
+
+# --- 2. 認証機能の設定 ---
+
+# Streamlit SecretsからGoogleのキーを読み込む
+google_client_id = st.secrets["GOOGLE_CLIENT_ID"]
+google_client_secret = st.secrets["GOOGLE_CLIENT_SECRET"]
+cookie_name = st.secrets["COOKIE_NAME"]
+cookie_key = st.secrets["COOKIE_KEY"]
+
+# ★★★ 最終修正点：RenderのURLに書き換える ★★★
+GOOGLE_REDIRECT_URI = "https://locker-system-jgsl.onrender.com/"
+
+credentials = {
+    'usernames': {}, # 従来のパスワードログイン用（空でも必須）
+    'social_logins': { # ソーシャルログイン用
+        'google': {
+            'client_id': google_client_id,
+            'client_secret': google_client_secret,
+            'redirect_uri': GOOGLE_REDIRECT_URI # ここでリダイレクトURIを指定
+        }
+    }
+}
+
+authenticator = stauth.Authenticate(
+    credentials,      # 1. 結合した辞書
+    cookie_name,      # 2. クッキー名 (string)
+    cookie_key,       # 3. クッキーキー (string)
+    3600              # 4. 有効期限 (int)
+)
 
 st.title('ロッカー管理システム')
 
-# --- 2. タブの作成 ---
-tab1, tab2 = st.tabs(["🗂️ 閲覧・登録用", "🔒 管理者用"])
+# 3. 管理者メールアドレスの設定
+ADMIN_EMAIL = "codelabproject315@gmail.com"
 
-# ---------------------------------
-# --- tab1 (閲覧・登録用) の中身 ---
-# ---------------------------------
-with tab1:
+# 認証フォーム表示用のプレースホルダー
+login_placeholder = st.empty()
+
+
+# --- 4. タブのコンテンツ関数定義 (変更なし) ---
+
+def display_viewer_tab():
+    """閲覧・登録用タブの内容を定義する関数（認証不要）"""
+    
     st.header('ロッカー空き状況')
     
     df_lockers = st.session_state.df 
@@ -47,7 +78,6 @@ with tab1:
     if available_lockers.empty:
         st.warning('現在、空きロッカーはありません。')
     else:
-        # height で高さを指定して、多すぎてもスクロールできるようにする
         st.dataframe(available_lockers[['Locker No.']], use_container_width=True, height=300)
 
     st.divider() 
@@ -60,8 +90,6 @@ with tab1:
         st.info('現在、登録できる空きロッカーがありません。')
     else:
         locker_no_reg_tab1 = st.selectbox('空いているロッカーを選択してください:', available_list_tab1, key='reg_locker_select_tab1')
-        
-        # --- 10. プレースホルダーを変更 ---
         student_id_reg_tab1 = st.text_input('学籍番号 (例: 2403036)', key='reg_sid_tab1')
         name_reg_tab1 = st.text_input('氏名 (例: 埼玉太郎)', key='reg_name_tab1')
         
@@ -74,10 +102,9 @@ with tab1:
                 st.success(f"【登録完了】ロッカー '{locker_no_reg_tab1}' に '{name_reg_tab1}' さんを登録しました。")
                 st.rerun()
 
-# ---------------------------------
-# --- tab2 (管理者用) の中身 ---
-# ---------------------------------
-with tab2:
+def display_admin_tab():
+    """管理者用タブの内容を定義する関数（管理者認証が必要）"""
+    
     st.header('管理者パネル')
     
     df_lockers = st.session_state.df
@@ -91,8 +118,6 @@ with tab2:
         st.info('現在、登録できる空きロッカーがありません。')
     else:
         locker_no_reg_tab2 = st.selectbox('空いているロッカーを選択してください:', available_list_tab2, key='reg_locker_select_tab2')
-        
-        # --- 10. プレースホルダーを変更 ---
         student_id_reg_tab2 = st.text_input('学籍番号 (例: 2403036)', key='reg_sid_tab2')
         name_reg_tab2 = st.text_input('氏名 (例: 埼玉太郎)', key='reg_name_tab2')
         
@@ -100,7 +125,6 @@ with tab2:
             if not student_id_reg_tab2 or not name_reg_tab2:
                 st.error('学籍番号と氏名の両方を入力してください。')
             else:
-                # loc を使うと index 名（0, 1, ...）で検索してしまうので、Locker No. で正しく検索する方法に変更
                 df_lockers.loc[df_lockers['Locker No.'] == locker_no_reg_tab2, ['Student ID', 'Name']] = [student_id_reg_tab2, name_reg_tab2]
                 st.session_state.df = df_lockers 
                 st.success(f"【登録完了】ロッカー '{locker_no_reg_tab2}' に '{name_reg_tab2}' さんを登録しました。")
@@ -128,7 +152,6 @@ with tab2:
 
     st.subheader('🗂️ 全ロッカー一覧 (削除ボタン付き)')
 
-    # 列の幅を少し調整 (Locker No. を短く)
     col_header = st.columns([1, 2, 2, 1]) 
     col_header[0].markdown('**Locker No.**')
     col_header[1].markdown('**Student ID**')
@@ -136,10 +159,8 @@ with tab2:
     col_header[3].markdown('**操作**')
     st.divider()
 
-    # .iterrows() はデータが大量になると遅いので、 st.session_state.df を直接使う
-    # 200件でも .iterrows() で問題ないですが、参考までに
     for index in st.session_state.df.index:
-        row = st.session_state.df.loc[index] # 1行分のデータを取得
+        row = st.session_state.df.loc[index]
         
         cols = st.columns([1, 2, 2, 1])
         
@@ -149,9 +170,58 @@ with tab2:
         
         if not pd.isnull(row['Student ID']):
             if cols[3].button('削除', key=f"del_{index}", type="primary"):
-                # st.session_state.df を直接変更
                 st.session_state.df.loc[index, ['Student ID', 'Name']] = [np.nan, np.nan]
                 st.success(f"ロッカー '{row['Locker No.']}' の使用者を削除しました。")
                 st.rerun()
         else:
             cols[3].text("")
+
+
+# --- 5. メインロジック（認証とタブの表示制御） ---
+
+is_admin_logged_in = False
+
+if st.session_state["authentication_status"]:
+    # ログイン済みの場合
+    current_user_email = st.session_state["name"]
+    
+    # ログイン・ログアウトフォームの場所に、ウェルカムメッセージとログアウトボタンを表示
+    with login_placeholder.container():
+        st.write(f'Welcome *{current_user_email}*')
+        authenticator.logout('Logout', 'main')
+
+    # 管理者かどうかのチェック
+    if current_user_email == ADMIN_EMAIL:
+        is_admin_logged_in = True
+
+
+# --- 6. タブの定義とコンテンツの実行 ---
+
+if is_admin_logged_in:
+    # 管理者がログインしている場合、2つのタブを定義
+    tab1, tab2 = st.tabs(["🗂️ 閲覧・登録用", "🔒 管理者用"])
+else:
+    # 未ログイン/一般ユーザーの場合、1つのタブだけを定義
+    tab1, = st.tabs(["🗂️ 閲覧・登録用"])
+    
+    # 未ログインの場合、ログインフォームを表示
+    if st.session_state["authentication_status"] is None:
+        with login_placeholder.container():
+            # フォームとGoogleボタンを表示する
+            authenticator.login(location='main')
+            st.info('管理者の方は、Googleアカウントでログインすると「管理者用」タブが表示されます。')
+    elif st.session_state["authentication_status"] is False:
+        # ログイン失敗の場合、エラーと共にフォームを再表示
+        with login_placeholder.container():
+            authenticator.login(location='main')
+            st.error('Login failed. Please check your Google account.')
+
+
+# 常に「閲覧・登録用」タブの内容を表示する
+with tab1:
+    display_viewer_tab()
+
+# 管理者ログイン時のみ「管理者用」タブの内容を表示する
+if is_admin_logged_in:
+    with tab2:
+        display_admin_tab()
