@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import streamlit_authenticator as stauth # 認証ライブラリ
-import yaml # 設定ファイル読み込み用
-import os # ★★★ Renderのために追加 ★★★
+import streamlit_authenticator as stauth
+import yaml
+import os
 
 # --- 1. アプリ専用の記憶場所 (session_state) にデータを保存する ---
 if 'df' not in st.session_state:
@@ -30,7 +30,7 @@ if 'df' not in st.session_state:
 
 # --- 2. 認証機能の設定 ---
 
-# ★★★ 最終修正点：Renderの「環境変数」からキーを読み込む ★★★
+# Renderの「環境変数」からキーを読み込む
 google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
 google_client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
 cookie_name = os.environ.get("COOKIE_NAME")
