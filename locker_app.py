@@ -59,10 +59,6 @@ st.title('ロッカー管理システム')
 # 3. 管理者メールアドレスの設定
 ADMIN_EMAIL = admin_user
 
-# 認証フォーム表示用のプレースホルダー
-login_placeholder = st.empty()
-
-
 # --- 4. タブのコンテンツ関数定義 (変更なし) ---
 
 def display_viewer_tab():
@@ -167,9 +163,6 @@ def display_admin_tab():
         cols[2].text(row.fillna('--- 空き ---')['Name'])
         
         if not pd.isnull(row['Student ID']):
-            #
-            # ★★★ ここがエラーになった行です (170行目) ★★★
-            #
             if cols[3].button('削除', key=f"del_{index}", type="primary"):
                 st.session_state.df.loc[index, ['Student ID', 'Name']] = [np.nan, np.nan]
                 st.success(f"ロッカー '{row['Locker No.']}' の使用者を削除しました。")
@@ -178,50 +171,39 @@ def display_admin_tab():
             cols[3].text("")
 
 
-# --- 5. メインロジック（★★ ここからが `st.modal` を使わないバージョン ★★） ---
+# --- 5. メインロジック（★★ ここが新しいロジック ★★） ---
 
-is_admin_logged_in = False
+# 5a. タブを先に定義する
+tab1, tab2 = st.tabs(["🗂️ 閲覧・登録用", "🔒 管理者用"])
 
-if st.session_state["authentication_status"]:
-    # ログイン済みの場合
-    current_user_email = st.session_state["name"] # ログインしたユーザー名
-    
-    with login_placeholder.container():
-        st.write(f'Welcome *{current_user_email}*')
-        authenticator.logout('Logout', 'main')
-
-    # 管理者かどうかのチェック
-    if current_user_email == ADMIN_EMAIL:
-        is_admin_logged_in = True
-
-
-# --- 6. タブの定義とコンテンツの実行 ---
-
-if is_admin_logged_in:
-    # 管理者がログインしている場合、2つのタブを定義
-    tab1, tab2 = st.tabs(["🗂️ 閲覧・登録用", "🔒 管理者用"])
-else:
-    # 未ログイン/一般ユーザーの場合、1つのタブだけを定義
-    tab1, = st.tabs(["🗂️ 閲覧・登録用"])
-    
-    # 未ログインの場合、ログインフォームを表示
-    if st.session_state["authentication_status"] is None:
-        with login_placeholder.container():
-            # ★★★ ログインフォームをメインページに表示（st.modal を削除） ★★★
-            authenticator.login(location='main')
-            st.info('管理者の方は、UsernameとPasswordでログインすると「管理者用」タブが表示されます。')
-    elif st.session_state["authentication_status"] is False:
-        # ログイン失敗の場合、エラーと共にフォームを再表示
-        with login_placeholder.container():
-            authenticator.login(location='main')
-            st.error('Username/password is incorrect')
-
-
-# 常に「閲覧・登録用」タブの内容を表示する
+# 5b. 閲覧・登録用タブ（認証不要）
 with tab1:
     display_viewer_tab()
 
-# 管理者ログイン時のみ「管理者用」タブの内容を表示する
-if is_admin_logged_in:
-    with tab2:
-        display_admin_tab()
+# 5c. 管理者用タブ（認証が必要）
+with tab2:
+    # ログインフォームをタブの中に表示
+    authenticator.login(location='main')
+
+    if st.session_state["authentication_status"]:
+        # ログイン成功
+        current_user_email = st.session_state["name"]
+        
+        if current_user_email == ADMIN_EMAIL:
+            # ★ 管理者の場合 ★
+            st.write(f'Welcome *{current_user_email}* (Admin)')
+            authenticator.logout('Logout', 'main')
+            
+            # 管理者用コンテンツを表示
+            display_admin_tab()
+        else:
+            # ★ 一般ユーザーがログインした場合 ★
+            st.warning('あなたは管理者として登録されていません。')
+            authenticator.logout('Logout', 'main')
+            
+    elif st.session_state["authentication_status"] is False:
+        # ログイン失敗
+        st.error('Username/password is incorrect')
+    elif st.session_state["authentication_status"] is None:
+        # 初期状態
+        st.info('管理者機能にアクセスするには、UsernameとPasswordでログインしてください。')
