@@ -41,7 +41,10 @@ credentials = {
     "usernames": {
         admin_user: {
             "email": admin_user,
-            "name": "Admin User", 
+            #
+            # ★★★ ここが最後の修正点 ★★★
+            #
+            "name": admin_user, # "Admin User" ではなく、あなたのUsername(admin_user) を格納
             "password": admin_hash 
         }
     }
@@ -187,9 +190,9 @@ with tab2:
 
     if st.session_state["authentication_status"]:
         # ログイン成功
-        current_user_email = st.session_state["name"]
+        current_user_email = st.session_state["name"] # <--- 修正後、ここは "codelabproject315@gmail.com" になる
         
-        if current_user_email == ADMIN_EMAIL:
+        if current_user_email == ADMIN_EMAIL: # <--- これで比較が True になる
             # ★ 管理者の場合 ★
             st.write(f'Welcome *{current_user_email}* (Admin)')
             authenticator.logout('Logout', 'main')
