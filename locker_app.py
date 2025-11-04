@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import streamlit_authenticator as stauth
-import yaml
-import os
+import streamlit_authenticator as stauth # 認証ライブラリ
+import yaml # 設定ファイル読み込み用
+import os # ★★★ Renderのために追加 ★★★
 
 # --- 1. アプリ専用の記憶場所 (session_state) にデータを保存する ---
 if 'df' not in st.session_state:
@@ -28,39 +28,39 @@ if 'df' not in st.session_state:
     }
     st.session_state.df = pd.DataFrame(initial_data)
 
-# --- 2. 認証機能の設定 ---
+# --- 2. 認証機能の設定 (パスワード認証版) ---
 
-# Renderの「環境変数」からキーを読み込む
-google_client_id = os.environ.get("GOOGLE_CLIENT_ID")
-google_client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
+# ★★★ Renderの「環境変数」から管理者情報を読み込む ★★★
+admin_user = os.environ.get("ADMIN_USER")
+admin_hash = os.environ.get("ADMIN_HASH")
 cookie_name = os.environ.get("COOKIE_NAME")
 cookie_key = os.environ.get("COOKIE_KEY")
 
-# ★★★ 最終修正点：RenderのURLに書き換える ★★★
-GOOGLE_REDIRECT_URI = "https://locker-system-jgsl.onrender.com/"
-
+# 認証ライブラリに渡す「認証情報」の辞書を作成
 credentials = {
-    'usernames': {}, # 従来のパスワードログイン用（空でも必須）
-    'social_logins': { # ソーシャルログイン用
-        'google': {
-            'client_id': google_client_id,
-            'client_secret': google_client_secret,
-            'redirect_uri': GOOGLE_REDIRECT_URI # ここでリダイレクトURIを指定
+    "usernames": {
+        # ここでRenderから読み込んだ管理者情報を設定
+        admin_user: {
+            "email": admin_user,
+            "name": "Admin User", # 表示名（何でもよい）
+            "password": admin_hash # ★ハッシュ化したパスワード
         }
     }
+    # social_logins (Google) は完全に削除
 }
 
 authenticator = stauth.Authenticate(
-    credentials,      # 1. 結合した辞書
-    cookie_name,      # 2. クッキー名 (string)
-    cookie_key,       # 3. クッキーキー (string)
-    3600              # 4. 有効期限 (int)
+    credentials,
+    cookie_name,
+    cookie_key,
+    3600
 )
 
 st.title('ロッカー管理システム')
 
 # 3. 管理者メールアドレスの設定
-ADMIN_EMAIL = "codelabproject315@gmail.com"
+# （ここで admin_user 変数を使う）
+ADMIN_EMAIL = admin_user
 
 # 認証フォーム表示用のプレースホルダー
 login_placeholder = st.empty()
@@ -184,9 +184,8 @@ is_admin_logged_in = False
 
 if st.session_state["authentication_status"]:
     # ログイン済みの場合
-    current_user_email = st.session_state["name"]
+    current_user_email = st.session_state["name"] # ログインしたユーザー名
     
-    # ログイン・ログアウトフォームの場所に、ウェルカムメッセージとログアウトボタンを表示
     with login_placeholder.container():
         st.write(f'Welcome *{current_user_email}*')
         authenticator.logout('Logout', 'main')
@@ -208,14 +207,14 @@ else:
     # 未ログインの場合、ログインフォームを表示
     if st.session_state["authentication_status"] is None:
         with login_placeholder.container():
-            # フォームとGoogleボタンを表示する
+            # ★★★ ログインフォームを表示（Googleボタンはもうない） ★★★
             authenticator.login(location='main')
-            st.info('管理者の方は、Googleアカウントでログインすると「管理者用」タブが表示されます。')
+            st.info('管理者の方は、UsernameとPasswordでログインすると「管理者用」タブが表示されます。')
     elif st.session_state["authentication_status"] is False:
         # ログイン失敗の場合、エラーと共にフォームを再表示
         with login_placeholder.container():
             authenticator.login(location='main')
-            st.error('Login failed. Please check your Google account.')
+            st.error('Username/password is incorrect')
 
 
 # 常に「閲覧・登録用」タブの内容を表示する
