@@ -21,6 +21,12 @@ if 'df' not in st.session_state:
     }
     st.session_state.df = pd.DataFrame(initial_data)
 
+# ★★★ メッセージ表示用の記憶場所を追加 ★★★
+if 'viewer_message' not in st.session_state:
+    st.session_state.viewer_message = ""
+if 'admin_message' not in st.session_state:
+    st.session_state.admin_message = ""
+
 # --- 2. 認証機能の設定 (パスワード認証版) ---
 
 # Renderの「環境変数」から管理者情報を読み込む
@@ -80,23 +86,40 @@ def display_viewer_tab():
         student_id_reg_tab1 = st.text_input('学籍番号 (例: 2403036)', key='reg_sid_tab1')
         name_reg_tab1 = st.text_input('氏名 (例: 埼玉太郎)', key='reg_name_tab1')
         
-        if st.button('この内容で登録する', key='reg_button_tab1'):
-            if not student_id_reg_tab1 or not name_reg_tab1:
-                st.error('学籍番号と氏名の両方を入力してください。')
-            else:
-                df_lockers.loc[df_lockers['Locker No.'] == locker_no_reg_tab1, ['Student ID', 'Name']] = [student_id_reg_tab1, name_reg_tab1]
-                st.session_state.df = df_lockers 
-                #
-                # ★★★ 修正点 1 (st.success -> st.toast) ★★★
-                #
-                st.toast(f"【登録完了】ロッカー '{locker_no_reg_tab1}' に '{name_reg_tab1}' さんを登録しました。")
-                st.rerun()
+        #
+        # ★★★ 修正点 1 (ボタンとメッセージを横に並べる) ★★★
+        #
+        col1, col2 = st.columns([1, 2]) # 1:2 の比率で列を分割
+        
+        with col1:
+            if st.button('この内容で登録する', key='reg_button_tab1'):
+                if not student_id_reg_tab1 or not name_reg_tab1:
+                    st.error('学籍番号と氏名の両方を入力してください。')
+                else:
+                    df_lockers.loc[df_lockers['Locker No.'] == locker_no_reg_tab1, ['Student ID', 'Name']] = [student_id_reg_tab1, name_reg_tab1]
+                    st.session_state.df = df_lockers 
+                    # メッセージをsession_stateに保存
+                    st.session_state.viewer_message = f"【登録完了】ロッカー '{locker_no_reg_tab1}' に '{name_reg_tab1}' さんを登録しました。"
+                    st.rerun() # リロード
+        
+        with col2:
+            # リロード後にメッセージが残っていれば表示
+            if st.session_state.viewer_message:
+                st.success(st.session_state.viewer_message)
+                st.session_state.viewer_message = "" # 表示したら消す
 
 def display_admin_tab():
     """管理者用タブの内容を定義する関数（管理者認証が必要）"""
     
     st.header('管理者パネル')
     
+    #
+    # ★★★ 修正点 2 (管理者メッセージをパネル上部に表示) ★★★
+    #
+    if st.session_state.admin_message:
+        st.success(st.session_state.admin_message)
+        st.session_state.admin_message = "" # 表示したら消す
+
     df_lockers = st.session_state.df
 
     st.subheader('📝 ロッカー新規登録')
@@ -117,10 +140,8 @@ def display_admin_tab():
             else:
                 df_lockers.loc[df_lockers['Locker No.'] == locker_no_reg_tab2, ['Student ID', 'Name']] = [student_id_reg_tab2, name_reg_tab2]
                 st.session_state.df = df_lockers 
-                #
-                # ★★★ 修正点 2 (st.success -> st.toast) ★★★
-                #
-                st.toast(f"【登録完了】ロッカー '{locker_no_reg_tab2}' に '{name_reg_tab2}' さんを登録しました。")
+                # st.toast の代わりに session_state に保存
+                st.session_state.admin_message = f"【登録完了】ロッカー '{locker_no_reg_tab2}' に '{name_reg_tab2}' さんを登録しました。"
                 st.rerun()
 
     st.divider()
@@ -138,10 +159,8 @@ def display_admin_tab():
         if st.button('このロッカーの使用者を削除する', type="primary", key='del_button_pulldown'):
             df_lockers.loc[df_lockers['Locker No.'] == locker_no_del, ['Student ID', 'Name']] = [np.nan, np.nan]
             st.session_state.df = df_lockers 
-            #
-            # ★★★ 修正点 3 (st.success -> st.toast) ★★★
-            #
-            st.toast(f"【削除完了】ロッカー '{locker_no_del}' の使用者情報を削除しました。")
+            # st.toast の代わりに session_state に保存
+            st.session_state.admin_message = f"【削除完了】ロッカー '{locker_no_del}' の使用者情報を削除しました。"
             st.rerun()
             
     st.divider() 
@@ -167,10 +186,8 @@ def display_admin_tab():
         if not pd.isnull(row['Student ID']):
             if cols[3].button('削除', key=f"del_{index}", type="primary"):
                 st.session_state.df.loc[index, ['Student ID', 'Name']] = [np.nan, np.nan]
-                #
-                # ★★★ 修正点 4 (st.success -> st.toast) ★★★
-                #
-                st.toast(f"ロッカー '{row['Locker No.']}' の使用者を削除しました。")
+                # st.toast の代わりに session_state に保存
+                st.session_state.admin_message = f"ロッカー '{row['Locker No.']}' の使用者を削除しました。"
                 st.rerun()
         else:
             cols[3].text("")
