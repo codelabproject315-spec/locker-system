@@ -11,13 +11,8 @@ if 'df' not in st.session_state:
     total_lockers = 200
     locker_numbers = [f"{i:03d}" for i in range(1, total_lockers + 1)]
     
-    # 200個分の空データ(np.nan)を生成
     student_ids = [np.nan] * total_lockers
     names = [np.nan] * total_lockers
-    
-    #
-    # ★★★ ここのサンプルデータを削除しました ★★★
-    #
     
     initial_data = {
         'Locker No.': locker_numbers,
@@ -57,7 +52,7 @@ st.title('ロッカー管理システム')
 # 3. 管理者メールアドレスの設定
 ADMIN_EMAIL = admin_user
 
-# --- 4. タブのコンテンツ関数定義 (変更なし) ---
+# --- 4. タブのコンテンツ関数定義 ---
 
 def display_viewer_tab():
     """閲覧・登録用タブの内容を定義する関数（認証不要）"""
@@ -91,7 +86,10 @@ def display_viewer_tab():
             else:
                 df_lockers.loc[df_lockers['Locker No.'] == locker_no_reg_tab1, ['Student ID', 'Name']] = [student_id_reg_tab1, name_reg_tab1]
                 st.session_state.df = df_lockers 
-                st.success(f"【登録完了】ロッカー '{locker_no_reg_tab1}' に '{name_reg_tab1}' さんを登録しました。")
+                #
+                # ★★★ 修正点 1 (st.success -> st.toast) ★★★
+                #
+                st.toast(f"【登録完了】ロッカー '{locker_no_reg_tab1}' に '{name_reg_tab1}' さんを登録しました。")
                 st.rerun()
 
 def display_admin_tab():
@@ -119,7 +117,10 @@ def display_admin_tab():
             else:
                 df_lockers.loc[df_lockers['Locker No.'] == locker_no_reg_tab2, ['Student ID', 'Name']] = [student_id_reg_tab2, name_reg_tab2]
                 st.session_state.df = df_lockers 
-                st.success(f"【登録完了】ロッカー '{locker_no_reg_tab2}' に '{name_reg_tab2}' さんを登録しました。")
+                #
+                # ★★★ 修正点 2 (st.success -> st.toast) ★★★
+                #
+                st.toast(f"【登録完了】ロッカー '{locker_no_reg_tab2}' に '{name_reg_tab2}' さんを登録しました。")
                 st.rerun()
 
     st.divider()
@@ -137,7 +138,10 @@ def display_admin_tab():
         if st.button('このロッカーの使用者を削除する', type="primary", key='del_button_pulldown'):
             df_lockers.loc[df_lockers['Locker No.'] == locker_no_del, ['Student ID', 'Name']] = [np.nan, np.nan]
             st.session_state.df = df_lockers 
-            st.success(f"【削除完了】ロッカー '{locker_no_del}' の使用者情報を削除しました。")
+            #
+            # ★★★ 修正点 3 (st.success -> st.toast) ★★★
+            #
+            st.toast(f"【削除完了】ロッカー '{locker_no_del}' の使用者情報を削除しました。")
             st.rerun()
             
     st.divider() 
@@ -163,13 +167,16 @@ def display_admin_tab():
         if not pd.isnull(row['Student ID']):
             if cols[3].button('削除', key=f"del_{index}", type="primary"):
                 st.session_state.df.loc[index, ['Student ID', 'Name']] = [np.nan, np.nan]
-                st.success(f"ロッカー '{row['Locker No.']}' の使用者を削除しました。")
+                #
+                # ★★★ 修正点 4 (st.success -> st.toast) ★★★
+                #
+                st.toast(f"ロッカー '{row['Locker No.']}' の使用者を削除しました。")
                 st.rerun()
         else:
             cols[3].text("")
 
 
-# --- 5. メインロジック（★★ ここが新しいロジック ★★） ---
+# --- 5. メインロジック ---
 
 # 5a. タブを先に定義する
 tab1, tab2 = st.tabs(["🗂️ 閲覧・登録用", "🔒 管理者用"])
