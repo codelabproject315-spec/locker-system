@@ -11,15 +11,13 @@ if 'df' not in st.session_state:
     total_lockers = 200
     locker_numbers = [f"{i:03d}" for i in range(1, total_lockers + 1)]
     
+    # 200個分の空データ(np.nan)を生成
     student_ids = [np.nan] * total_lockers
     names = [np.nan] * total_lockers
     
-    student_ids[0] = 'S1001' # 001番
-    names[0] = '田中 太郎'
-    student_ids[1] = 'S1002' # 002番
-    names[1] = '鈴木 花子'
-    student_ids[3] = 'S1003' # 004番
-    names[3] = '佐藤 次郎'
+    #
+    # ★★★ ここのサンプルデータを削除しました ★★★
+    #
     
     initial_data = {
         'Locker No.': locker_numbers,
@@ -41,10 +39,7 @@ credentials = {
     "usernames": {
         admin_user: {
             "email": admin_user,
-            #
-            # ★★★ ここが最後の修正点 ★★★
-            #
-            "name": admin_user, # "Admin User" ではなく、あなたのUsername(admin_user) を格納
+            "name": admin_user, 
             "password": admin_hash 
         }
     }
@@ -190,9 +185,9 @@ with tab2:
 
     if st.session_state["authentication_status"]:
         # ログイン成功
-        current_user_email = st.session_state["name"] # <--- 修正後、ここは "codelabproject315@gmail.com" になる
+        current_user_email = st.session_state["name"] 
         
-        if current_user_email == ADMIN_EMAIL: # <--- これで比較が True になる
+        if current_user_email == ADMIN_EMAIL: 
             # ★ 管理者の場合 ★
             st.write(f'Welcome *{current_user_email}* (Admin)')
             authenticator.logout('Logout', 'main')
