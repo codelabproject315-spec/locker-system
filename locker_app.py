@@ -21,7 +21,6 @@ if 'df' not in st.session_state:
     }
     st.session_state.df = pd.DataFrame(initial_data)
 
-# ★★★ メッセージ表示用の記憶場所を追加 ★★★
 if 'viewer_message' not in st.session_state:
     st.session_state.viewer_message = ""
 if 'admin_message' not in st.session_state:
@@ -82,43 +81,47 @@ def display_viewer_tab():
     if not available_list_tab1:
         st.info('現在、登録できる空きロッカーがありません。')
     else:
-        locker_no_reg_tab1 = st.selectbox('空いているロッカーを選択してください:', available_list_tab1, key='reg_locker_select_tab1')
+        #
+        # ★★★ 修正点 1 (index=None を追加) ★★★
+        #
+        locker_no_reg_tab1 = st.selectbox(
+            '空いているロッカーを選択してください:', 
+            available_list_tab1, 
+            key='reg_locker_select_tab1',
+            index=None, # <- これが自動選択を防ぎます
+            placeholder="ロッカー番号を選択..." # 未選択時の表示
+        )
         student_id_reg_tab1 = st.text_input('学籍番号 (例: 2403036)', key='reg_sid_tab1')
         name_reg_tab1 = st.text_input('氏名 (例: 埼玉太郎)', key='reg_name_tab1')
         
-        #
-        # ★★★ 修正点 1 (ボタンとメッセージを横に並べる) ★★★
-        #
-        col1, col2 = st.columns([1, 2]) # 1:2 の比率で列を分割
+        col1, col2 = st.columns([1, 2]) 
         
         with col1:
             if st.button('この内容で登録する', key='reg_button_tab1'):
-                if not student_id_reg_tab1 or not name_reg_tab1:
-                    st.error('学籍番号と氏名の両方を入力してください。')
+                #
+                # ★★★ 修正点 2 (ロッカーが未選択(None)でないかチェック) ★★★
+                #
+                if not locker_no_reg_tab1 or not student_id_reg_tab1 or not name_reg_tab1:
+                    st.error('ロッカー番号、学籍番号、氏名をすべて入力してください。')
                 else:
                     df_lockers.loc[df_lockers['Locker No.'] == locker_no_reg_tab1, ['Student ID', 'Name']] = [student_id_reg_tab1, name_reg_tab1]
                     st.session_state.df = df_lockers 
-                    # メッセージをsession_stateに保存
                     st.session_state.viewer_message = f"【登録完了】ロッカー '{locker_no_reg_tab1}' に '{name_reg_tab1}' さんを登録しました。"
-                    st.rerun() # リロード
+                    st.rerun() 
         
         with col2:
-            # リロード後にメッセージが残っていれば表示
             if st.session_state.viewer_message:
                 st.success(st.session_state.viewer_message)
-                st.session_state.viewer_message = "" # 表示したら消す
+                st.session_state.viewer_message = "" 
 
 def display_admin_tab():
     """管理者用タブの内容を定義する関数（管理者認証が必要）"""
     
     st.header('管理者パネル')
     
-    #
-    # ★★★ 修正点 2 (管理者メッセージをパネル上部に表示) ★★★
-    #
     if st.session_state.admin_message:
         st.success(st.session_state.admin_message)
-        st.session_state.admin_message = "" # 表示したら消す
+        st.session_state.admin_message = "" 
 
     df_lockers = st.session_state.df
 
@@ -130,17 +133,28 @@ def display_admin_tab():
     if not available_list_tab2:
         st.info('現在、登録できる空きロッカーがありません。')
     else:
-        locker_no_reg_tab2 = st.selectbox('空いているロッカーを選択してください:', available_list_tab2, key='reg_locker_select_tab2')
+        #
+        # ★★★ 修正点 3 (index=None を追加) ★★★
+        #
+        locker_no_reg_tab2 = st.selectbox(
+            '空いているロッカーを選択してください:', 
+            available_list_tab2, 
+            key='reg_locker_select_tab2',
+            index=None, # <- これが自動選択を防ぎます
+            placeholder="ロッカー番号を選択..." # 未選択時の表示
+        )
         student_id_reg_tab2 = st.text_input('学籍番号 (例: 2403036)', key='reg_sid_tab2')
         name_reg_tab2 = st.text_input('氏名 (例: 埼玉太郎)', key='reg_name_tab2')
         
         if st.button('この内容で登録する', key='reg_button_tab2'):
-            if not student_id_reg_tab2 or not name_reg_tab2:
-                st.error('学籍番号と氏名の両方を入力してください。')
+            #
+            # ★★★ 修正点 4 (ロッカーが未選択(None)でないかチェック) ★★★
+            #
+            if not locker_no_reg_tab2 or not student_id_reg_tab2 or not name_reg_tab2:
+                st.error('ロッカー番号、学籍番号、氏名をすべて入力してください。')
             else:
                 df_lockers.loc[df_lockers['Locker No.'] == locker_no_reg_tab2, ['Student ID', 'Name']] = [student_id_reg_tab2, name_reg_tab2]
                 st.session_state.df = df_lockers 
-                # st.toast の代わりに session_state に保存
                 st.session_state.admin_message = f"【登録完了】ロッカー '{locker_no_reg_tab2}' に '{name_reg_tab2}' さんを登録しました。"
                 st.rerun()
 
@@ -154,14 +168,22 @@ def display_admin_tab():
     if not used_locker_list:
         st.info('現在、使用中のロッカーはありません。')
     else:
-        locker_no_del = st.selectbox('削除するロッカーを選択してください:', used_locker_list, key='del_locker_select')
+        locker_no_del = st.selectbox(
+            '削除するロッカーを選択してください:', 
+            used_locker_list, 
+            key='del_locker_select',
+            index=None, # <- ここもリセット
+            placeholder="ロッカー番号を選択..."
+        )
         
         if st.button('このロッカーの使用者を削除する', type="primary", key='del_button_pulldown'):
-            df_lockers.loc[df_lockers['Locker No.'] == locker_no_del, ['Student ID', 'Name']] = [np.nan, np.nan]
-            st.session_state.df = df_lockers 
-            # st.toast の代わりに session_state に保存
-            st.session_state.admin_message = f"【削除完了】ロッカー '{locker_no_del}' の使用者情報を削除しました。"
-            st.rerun()
+            if not locker_no_del: # 未選択でないかチェック
+                st.error('削除するロッカー番号を選択してください。')
+            else:
+                df_lockers.loc[df_lockers['Locker No.'] == locker_no_del, ['Student ID', 'Name']] = [np.nan, np.nan]
+                st.session_state.df = df_lockers 
+                st.session_state.admin_message = f"【削除完了】ロッカー '{locker_no_del}' の使用者情報を削除しました。"
+                st.rerun()
             
     st.divider() 
 
@@ -186,7 +208,6 @@ def display_admin_tab():
         if not pd.isnull(row['Student ID']):
             if cols[3].button('削除', key=f"del_{index}", type="primary"):
                 st.session_state.df.loc[index, ['Student ID', 'Name']] = [np.nan, np.nan]
-                # st.toast の代わりに session_state に保存
                 st.session_state.admin_message = f"ロッカー '{row['Locker No.']}' の使用者を削除しました。"
                 st.rerun()
         else:
